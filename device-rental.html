@@ -173,6 +173,7 @@ td { padding:9px 10px; vertical-align:middle; }
       📥 엑셀 가져오기
       <input type="file" id="excel-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelFile(this)">
     </label>
+    <button class="btn" style="background:#fff;color:#ea4335;border:1px solid #ea4335;" onclick="clearAllDevices()">🗑️ 전체 삭제</button>
   </div>
 
   <div class="table-wrap">
@@ -687,6 +688,14 @@ function toast(msg){
   const el=document.getElementById('toast');
   el.textContent=msg; el.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ── 전체 삭제 ─────────────────────────────────────────────
+function clearAllDevices() {
+  if(!confirm(`전체 단말기 ${devices.length}개를 모두 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+  devices = []; nextId = 1;
+  save(); renderTable();
+  toast('전체 삭제되었습니다.');
 }
 
 // ── 엑셀 가져오기 ────────────────────────────────────────
