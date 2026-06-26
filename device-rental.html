@@ -724,27 +724,27 @@ function handleExcelFile(input) {
 }
 
 // 헤더 행을 찾아 컬럼 인덱스 매핑
+const POSITIONAL_MAP = {assetId:0,name:1,model:2,version:3,serial:4,resolution:5,ram:6,chipset:7,renter:8,rentDate:9,location:10,notes:11};
+
 function detectColumns(headerRow) {
   const map = {};
   headerRow.forEach((cell, i) => {
     const c = String(cell).trim();
-    if(/자산|번호|asset|id/i.test(c) && !map.assetId)     map.assetId     = i;
-    if(/기기명|기기|단말/i.test(c)   && !map.name)         map.name        = i;
-    if(/모델/i.test(c)               && !map.model)        map.model       = i;
-    if(/버전|os.*ver|version/i.test(c)&& !map.version)     map.version     = i;
-    if(/시리얼|serial|s\/n/i.test(c) && !map.serial)       map.serial      = i;
-    if(/해상도|resol/i.test(c)       && !map.resolution)   map.resolution  = i;
-    if(/ram|메모리|memory/i.test(c)  && !map.ram)          map.ram         = i;
-    if(/칩셋|chip|cpu|ap/i.test(c)   && !map.chipset)      map.chipset     = i;
-    if(/대여자|사용자|renter/i.test(c)&& !map.renter)       map.renter      = i;
-    if(/날짜|대여일|date/i.test(c)   && !map.rentDate)     map.rentDate    = i;
-    if(/위치|장소|location/i.test(c) && !map.location)     map.location    = i;
-    if(/비고|메모|note/i.test(c)     && !map.notes)        map.notes       = i;
+    if(/^자산번호|^자산|^asset.?id/i.test(c)           && !map.assetId)    map.assetId    = i;
+    if(/기기명|단말기명/i.test(c)                        && !map.name)       map.name       = i;
+    if(/모델번호|모델/i.test(c)                          && !map.model)      map.model      = i;
+    if(/버전|version/i.test(c)                          && !map.version)    map.version    = i;
+    if(/시리얼|serial|s\/n/i.test(c)                    && !map.serial)     map.serial     = i;
+    if(/해상도|resol/i.test(c)                          && !map.resolution) map.resolution = i;
+    if(/^ram$|메모리/i.test(c)                          && !map.ram)        map.ram        = i;
+    if(/칩셋|chip|cpu/i.test(c)                         && !map.chipset)    map.chipset    = i;
+    if(/대여자|사용자/i.test(c)                          && !map.renter)     map.renter     = i;
+    if(/날짜|대여일/i.test(c)                            && !map.rentDate)   map.rentDate   = i;
+    if(/위치|장소/i.test(c)                              && !map.location)   map.location   = i;
+    if(/비고|메모/i.test(c)                              && !map.notes)      map.notes      = i;
   });
-  // 헤더 미감지 시 위치 기반 기본값 (이미지 스프레드시트 컬럼 순서 기준)
-  const def = [,'assetId','name','model','version','serial','resolution','ram','chipset','renter','rentDate','location','notes'];
-  def.forEach((k,i)=>{ if(k && map[k]===undefined) map[k]=i; });
-  return map;
+  // 감지된 항목이 거의 없으면 위치 기반 기본값 사용
+  return Object.keys(map).length >= 4 ? map : {...POSITIONAL_MAP};
 }
 
 function inferOS(name, model) {
@@ -780,14 +780,16 @@ function parseDate(val) {
 }
 
 function parseRows(rows) {
-  // 첫 행이 헤더인지 확인 (첫 셀에 숫자가 아닌 텍스트면 헤더로 간주)
+  // 첫 행이 진짜 헤더인지 확인 (기기명/모델번호 같은 컬럼명 키워드 포함 여부)
+  const headerKeywords = /기기명|모델번호|자산번호|시리얼|해상도|칩셋|대여자|위치|비고/;
+  const firstRowText = (rows[0] || []).map(c => String(c)).join(' ');
   let dataStart = 0;
   let colMap;
-  if(isNaN(rows[0][0]) || /[가-힣a-zA-Z]/.test(String(rows[0][0]))) {
+  if(headerKeywords.test(firstRowText)) {
     colMap = detectColumns(rows[0]);
     dataStart = 1;
   } else {
-    colMap = detectColumns([]);
+    colMap = {...POSITIONAL_MAP};
   }
 
   const g = (row, key) => String(row[colMap[key]] ?? '').trim();
