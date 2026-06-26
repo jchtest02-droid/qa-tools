@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>단말기 대여/반납 현황 관리</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI','Malgun Gothic',sans-serif; background:#f0f2f5; color:#222; }
@@ -168,6 +169,10 @@ td { padding:9px 10px; vertical-align:middle; }
       <option value="AS">AS</option>
       <option value="폐기">폐기</option>
     </select>
+    <label class="btn btn-white" style="cursor:pointer;" title="엑셀 파일 가져오기">
+      📥 엑셀 가져오기
+      <input type="file" id="excel-input" accept=".xlsx,.xls" style="display:none" onchange="handleExcelFile(this)">
+    </label>
   </div>
 
   <div class="table-wrap">
@@ -298,6 +303,28 @@ td { padding:9px 10px; vertical-align:middle; }
         <button class="btn btn-purple" onclick="printSingleQR()">🖨️ 인쇄</button>
       </div>
       <button class="btn btn-cancel" onclick="closeModal('qr-modal')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 엑셀 가져오기 미리보기 Modal -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal" style="width:700px;max-width:98vw;">
+    <h2>엑셀 가져오기 미리보기</h2>
+    <div id="import-summary" style="font-size:13px;color:#555;margin-bottom:12px;"></div>
+    <div style="overflow-x:auto;max-height:400px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:8px;">
+      <table id="import-preview-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px;">
+        <thead id="import-preview-head" style="background:#f8f9fa;position:sticky;top:0;"></thead>
+        <tbody id="import-preview-body"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:#888;">
+      ※ 기존 데이터를 모두 교체합니다. 추가(merge)하려면 <strong>병합 추가</strong>를 선택하세요.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('import-modal')">취소</button>
+      <button class="btn btn-white"  onclick="confirmImport(true)">병합 추가</button>
+      <button class="btn btn-primary" onclick="confirmImport(false)">전체 교체</button>
     </div>
   </div>
 </div>
@@ -660,6 +687,186 @@ function toast(msg){
   const el=document.getElementById('toast');
   el.textContent=msg; el.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ── 엑셀 가져오기 ────────────────────────────────────────
+let importRows = [];
+
+function handleExcelFile(input) {
+  const file = input.files[0]; if(!file) return;
+  input.value = '';
+  if(typeof XLSX === 'undefined'){toast('Excel 라이브러리 로드 실패. 인터넷 연결을 확인해주세요.');return;}
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if(rows.length < 2){toast('데이터가 없습니다.');return;}
+      importRows = rows;
+      showImportPreview(rows);
+    } catch(err) { toast('파일 읽기 오류: ' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// 헤더 행을 찾아 컬럼 인덱스 매핑
+function detectColumns(headerRow) {
+  const map = {};
+  headerRow.forEach((cell, i) => {
+    const c = String(cell).trim();
+    if(/자산|번호|asset|id/i.test(c) && !map.assetId)     map.assetId     = i;
+    if(/기기명|기기|단말/i.test(c)   && !map.name)         map.name        = i;
+    if(/모델/i.test(c)               && !map.model)        map.model       = i;
+    if(/버전|os.*ver|version/i.test(c)&& !map.version)     map.version     = i;
+    if(/시리얼|serial|s\/n/i.test(c) && !map.serial)       map.serial      = i;
+    if(/해상도|resol/i.test(c)       && !map.resolution)   map.resolution  = i;
+    if(/ram|메모리|memory/i.test(c)  && !map.ram)          map.ram         = i;
+    if(/칩셋|chip|cpu|ap/i.test(c)   && !map.chipset)      map.chipset     = i;
+    if(/대여자|사용자|renter/i.test(c)&& !map.renter)       map.renter      = i;
+    if(/날짜|대여일|date/i.test(c)   && !map.rentDate)     map.rentDate    = i;
+    if(/위치|장소|location/i.test(c) && !map.location)     map.location    = i;
+    if(/비고|메모|note/i.test(c)     && !map.notes)        map.notes       = i;
+  });
+  // 헤더 미감지 시 위치 기반 기본값 (이미지 스프레드시트 컬럼 순서 기준)
+  const def = [,'assetId','name','model','version','serial','resolution','ram','chipset','renter','rentDate','location','notes'];
+  def.forEach((k,i)=>{ if(k && map[k]===undefined) map[k]=i; });
+  return map;
+}
+
+function inferOS(name, model) {
+  if(/iphone|ipad/i.test(name)) return 'iOS';
+  if(/^(A\d{4}|MK|MG|MM|MQ)/i.test(model)) return 'iOS';
+  return 'Android';
+}
+
+function inferStatus(location, renter, notes) {
+  const loc = String(location).trim();
+  const nt  = String(notes).trim();
+  if(/폐기/i.test(loc)||/폐기/i.test(nt))           return '폐기';
+  if(/고장/i.test(loc)||/고장/i.test(nt))           return '고장';
+  if(/삼성.*지원|as센터|수리/i.test(loc))            return 'AS';
+  if(String(renter).trim() && !/보관/i.test(loc))   return '대여';
+  return '보유';
+}
+
+function parseDate(val) {
+  if(!val) return '';
+  const s = String(val).trim();
+  // YY-M-D 또는 YY-MM-DD 형식
+  const m = s.match(/^(\d{2})-(\d{1,2})-(\d{1,2})$/);
+  if(m) return `20${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  // YYYY-MM-DD 이미 완전한 형식
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // 엑셀 날짜 숫자
+  if(!isNaN(val) && Number(val) > 1000) {
+    const d = XLSX.SSF.parse_date_code(Number(val));
+    if(d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+  }
+  return s;
+}
+
+function parseRows(rows) {
+  // 첫 행이 헤더인지 확인 (첫 셀에 숫자가 아닌 텍스트면 헤더로 간주)
+  let dataStart = 0;
+  let colMap;
+  if(isNaN(rows[0][0]) || /[가-힣a-zA-Z]/.test(String(rows[0][0]))) {
+    colMap = detectColumns(rows[0]);
+    dataStart = 1;
+  } else {
+    colMap = detectColumns([]);
+  }
+
+  const g = (row, key) => String(row[colMap[key]] ?? '').trim();
+
+  return rows.slice(dataStart)
+    .filter(row => row.some(c => String(c).trim()))
+    .map((row, i) => {
+      const assetId  = g(row,'assetId');
+      const name     = g(row,'name');
+      const model    = g(row,'model');
+      const version  = g(row,'version');
+      const serial   = g(row,'serial');
+      const renter   = g(row,'renter');
+      const location = g(row,'location');
+      const notes    = g(row,'notes');
+      return {
+        id: nextId + i,
+        assetId, name, model,
+        os: inferOS(name, model),
+        version, serial,
+        resolution: g(row,'resolution'),
+        ram:        g(row,'ram'),
+        chipset:    g(row,'chipset'),
+        status:     inferStatus(location, renter, notes),
+        location, renter,
+        rentDate:   parseDate(g(row,'rentDate')),
+        returnDate: '',
+        notes,
+      };
+    })
+    .filter(d => d.name);  // 기기명 없는 행 제거
+}
+
+function showImportPreview(rows) {
+  const parsed = parseRows(rows);
+  importRows._parsed = parsed;
+
+  document.getElementById('import-summary').innerHTML =
+    `<strong>${parsed.length}개</strong> 단말기 감지됨 — ` +
+    `보유 ${parsed.filter(d=>d.status==='보유').length} / ` +
+    `대여 ${parsed.filter(d=>d.status==='대여').length} / ` +
+    `고장 ${parsed.filter(d=>d.status==='고장').length} / ` +
+    `AS ${parsed.filter(d=>d.status==='AS').length} / ` +
+    `폐기 ${parsed.filter(d=>d.status==='폐기').length}`;
+
+  document.getElementById('import-preview-head').innerHTML = `<tr>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">자산번호</th>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">기기명</th>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">모델</th>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">OS/버전</th>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">시리얼</th>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">상태</th>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">대여자</th>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">위치</th>
+    <th style="padding:8px;border-bottom:1px solid #e0e0e0;white-space:nowrap;">비고</th>
+  </tr>`;
+
+  document.getElementById('import-preview-body').innerHTML = parsed.map(d => `
+    <tr style="border-bottom:1px solid #f0f0f0;">
+      <td style="padding:7px 8px;">${esc(d.assetId)||'-'}</td>
+      <td style="padding:7px 8px;"><strong>${esc(d.name)}</strong></td>
+      <td style="padding:7px 8px;">${esc(d.model)||'-'}</td>
+      <td style="padding:7px 8px;">${esc(d.os)} ${esc(d.version)}</td>
+      <td style="padding:7px 8px;font-size:11px;">${esc(d.serial)||'-'}</td>
+      <td style="padding:7px 8px;">${statusBadge(d.status)}</td>
+      <td style="padding:7px 8px;">${esc(d.renter)||'-'}</td>
+      <td style="padding:7px 8px;">${esc(d.location)||'-'}</td>
+      <td style="padding:7px 8px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(d.notes)}">${esc(d.notes)||'-'}</td>
+    </tr>`).join('');
+
+  openModal('import-modal');
+}
+
+function confirmImport(merge) {
+  const parsed = importRows._parsed;
+  if(!parsed||!parsed.length){closeModal('import-modal');return;}
+
+  if(merge) {
+    // 기존 데이터에 병합 (시리얼 기준으로 중복 제거)
+    const existingSerials = new Set(devices.map(d=>d.serial).filter(Boolean));
+    const toAdd = parsed.filter(d => !d.serial || !existingSerials.has(d.serial));
+    toAdd.forEach((d,i)=>{ d.id = nextId+i; });
+    nextId += toAdd.length;
+    devices.push(...toAdd);
+    toast(`${toAdd.length}개 추가되었습니다. (중복 ${parsed.length-toAdd.length}개 스킵)`);
+  } else {
+    devices = parsed;
+    nextId = Math.max(...devices.map(d=>d.id)) + 1;
+    toast(`${devices.length}개 단말기로 교체되었습니다.`);
+  }
+
+  save(); closeModal('import-modal'); renderTable();
 }
 
 renderTable();
