@@ -710,10 +710,12 @@ function handleExcelFile(input) {
     try {
       const wb = XLSX.read(e.target.result, {type:'array'});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-      if(rows.length < 2){toast('데이터가 없습니다.');return;}
+      const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      // 완전히 빈 행 제거 (상단 로고/여백 대비)
+      const rows = raw.filter(row => row.some(c => String(c).trim() !== ''));
+      if(!rows.length){toast('데이터가 없습니다. 파일을 확인해주세요.');return;}
       const parsed = parseRows(rows);
-      if(!parsed.length){toast('가져올 데이터가 없습니다.');return;}
+      if(!parsed.length){toast('기기명이 있는 행을 찾지 못했습니다.');return;}
       devices = parsed;
       nextId = Math.max(...devices.map(d=>d.id)) + 1;
       save(); renderTable();
