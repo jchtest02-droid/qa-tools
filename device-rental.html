@@ -6,358 +6,130 @@
 <title>단말기 대여/반납 현황 관리</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI','Malgun Gothic',sans-serif; background:#f0f2f5; color:#222; }
 
-  body {
-    font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
-    background: #f0f2f5;
-    color: #222;
-  }
+header { background:#1a73e8; color:#fff; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+header h1 { font-size:18px; font-weight:600; }
+.header-actions { display:flex; gap:8px; }
 
-  header {
-    background: #1a73e8;
-    color: #fff;
-    padding: 16px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  }
+.btn { padding:7px 14px; border:none; border-radius:6px; cursor:pointer; font-size:13px; font-weight:500; transition:opacity .15s,transform .1s; }
+.btn:hover { opacity:.85; } .btn:active { transform:scale(.97); }
+.btn-primary  { background:#1a73e8; color:#fff; }
+.btn-white    { background:#fff; color:#1a73e8; border:1px solid #1a73e8; }
+.btn-rent     { background:#1a73e8; color:#fff; font-size:12px; padding:5px 10px; min-width:50px; }
+.btn-return   { background:#34a853; color:#fff; font-size:12px; padding:5px 10px; min-width:50px; }
+.btn-qr       { background:#7c3aed; color:#fff; font-size:12px; padding:5px 8px; }
+.btn-purple   { background:#7c3aed; color:#fff; }
+.btn-cancel   { background:#f1f3f4; color:#444; }
+.btn-icon     { background:none; border:none; cursor:pointer; font-size:14px; padding:3px 5px; border-radius:4px; }
+.btn-icon:hover { background:#e8e8e8; }
 
-  header h1 { font-size: 20px; font-weight: 600; }
+.container { padding:20px 24px; }
 
-  .header-actions { display: flex; gap: 10px; align-items: center; }
+.summary { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.summary-card { background:#fff; border-radius:10px; padding:12px 16px; box-shadow:0 1px 4px rgba(0,0,0,.1); flex:1; min-width:90px; text-align:center; }
+.summary-card .lbl { font-size:11px; color:#666; margin-bottom:4px; }
+.summary-card .val { font-size:22px; font-weight:700; }
+.sc-total   .val { color:#444; }
+.sc-avail   .val { color:#34a853; }
+.sc-rented  .val { color:#1a73e8; }
+.sc-broken  .val { color:#f57c00; }
+.sc-as      .val { color:#7c3aed; }
+.sc-discard .val { color:#999; }
 
-  .btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: opacity 0.15s, transform 0.1s;
-  }
-  .btn:hover { opacity: 0.85; }
-  .btn:active { transform: scale(0.97); }
+.toolbar { display:flex; gap:10px; margin-bottom:14px; align-items:center; flex-wrap:wrap; }
+.search-box { padding:7px 12px; border:1px solid #ccc; border-radius:6px; font-size:13px; width:220px; outline:none; }
+.search-box:focus { border-color:#1a73e8; }
+select.filter-select { padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px; background:#fff; cursor:pointer; outline:none; }
 
-  .btn-primary  { background: #1a73e8; color: #fff; }
-  .btn-white    { background: #fff; color: #1a73e8; border: 1px solid #1a73e8; }
-  .btn-rent     { background: #1a73e8; color: #fff; min-width: 68px; }
-  .btn-return   { background: #34a853; color: #fff; min-width: 68px; }
-  .btn-qr       { background: #7c3aed; color: #fff; min-width: 44px; padding: 6px 10px; font-size: 12px; }
-  .btn-purple   { background: #7c3aed; color: #fff; }
-  .btn-danger   { background: #ea4335; color: #fff; padding: 5px 10px; font-size: 12px; }
-  .btn-icon     { background: none; border: none; cursor: pointer; font-size: 15px; padding: 4px 6px; border-radius: 4px; }
-  .btn-icon:hover { background: #e8e8e8; }
+.table-wrap { background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.1); overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:12px; min-width:1800px; }
+thead tr { background:#f8f9fa; }
+thead th { padding:11px 10px; text-align:left; font-weight:600; color:#555; border-bottom:1px solid #e0e0e0; white-space:nowrap; cursor:pointer; user-select:none; }
+thead th:hover { background:#eef2fb; }
+thead th.no-sort { cursor:default; } thead th.no-sort:hover { background:#f8f9fa; }
+thead th .si { margin-left:3px; color:#bbb; font-size:10px; }
+thead th.sorted .si { color:#1a73e8; }
+tbody tr { border-bottom:1px solid #f0f0f0; transition:background .1s; }
+tbody tr:last-child { border-bottom:none; }
+tbody tr:hover { background:#f7f9ff; }
+td { padding:9px 10px; vertical-align:middle; }
+.trunc { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; max-width:150px; }
 
-  .container { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+.badge { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
+.badge-avail   { background:#e6f4ea; color:#1e7e34; }
+.badge-rented  { background:#e8f0fe; color:#1967d2; }
+.badge-broken  { background:#fff3e0; color:#e65100; }
+.badge-as      { background:#f3e8ff; color:#6a1b9a; }
+.badge-discard { background:#f1f3f4; color:#777; }
 
-  .toolbar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .toolbar-right { margin-left: auto; }
+.os-badge { display:inline-block; padding:1px 7px; border-radius:4px; font-size:11px; font-weight:600; }
+.os-android { background:#e8f5e9; color:#2e7d32; }
+.os-ios     { background:#e3f2fd; color:#1565c0; }
+.os-other   { background:#f3e5f5; color:#6a1b9a; }
 
-  .search-box {
-    padding: 8px 14px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 13px;
-    width: 220px;
-    outline: none;
-  }
-  .search-box:focus { border-color: #1a73e8; }
+.actions { display:flex; gap:4px; align-items:center; flex-wrap:nowrap; }
+.empty-row td { text-align:center; color:#aaa; padding:48px; font-size:14px; }
 
-  select.filter-select {
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 13px;
-    background: #fff;
-    cursor: pointer;
-    outline: none;
-  }
+/* Modal */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:#fff; border-radius:14px; width:480px; max-width:96vw; max-height:92vh; overflow-y:auto; padding:26px; box-shadow:0 8px 32px rgba(0,0,0,.2); animation:fadeIn .18s ease; }
+.modal.modal-qr { width:500px; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:none} }
+.modal h2 { font-size:16px; margin-bottom:16px; color:#333; }
+.sec-label { font-size:11px; font-weight:700; color:#1a73e8; letter-spacing:.5px; text-transform:uppercase; margin:14px 0 8px; padding-bottom:4px; border-bottom:1px solid #e8f0fe; }
+.form-group { margin-bottom:11px; }
+.form-group label { display:block; font-size:12px; font-weight:600; color:#555; margin-bottom:4px; }
+.form-group input,.form-group select,.form-group textarea { width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:13px; outline:none; font-family:inherit; }
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus { border-color:#1a73e8; }
+.form-group textarea { resize:vertical; min-height:56px; }
+.form-row { display:flex; gap:10px; }
+.form-row .form-group { flex:1; }
+.modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
 
-  .summary {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
+.rent-info { background:#f8f9fa; border-radius:8px; padding:12px; margin-bottom:14px; font-size:13px; }
+.rent-info .ri-row { display:flex; gap:8px; margin-bottom:5px; }
+.rent-info .ri-row:last-child { margin-bottom:0; }
+.rent-info .ri-label { color:#888; min-width:58px; font-size:12px; }
+.rent-info .ri-value { font-weight:600; }
 
-  .summary-card {
-    background: #fff;
-    border-radius: 10px;
-    padding: 14px 22px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-    flex: 1;
-    min-width: 130px;
-    text-align: center;
-  }
-  .summary-card .label { font-size: 12px; color: #666; margin-bottom: 6px; }
-  .summary-card .value { font-size: 26px; font-weight: 700; }
-  .summary-card.total  .value { color: #444; }
-  .summary-card.avail  .value { color: #34a853; }
-  .summary-card.rented .value { color: #ea4335; }
+/* QR modal */
+.qr-modal-body { display:flex; gap:18px; align-items:flex-start; }
+#qr-canvas-container { flex-shrink:0; width:180px; height:180px; display:flex; align-items:center; justify-content:center; border:2px solid #e0e0e0; border-radius:10px; background:#fff; overflow:hidden; }
+#qr-canvas-container canvas,#qr-canvas-container img { display:block; }
+.qr-device-info { flex:1; font-size:12.5px; }
+.qr-device-info .qi-title { font-size:14px; font-weight:700; color:#222; margin-bottom:10px; }
+.qr-device-info .qi-row { display:flex; gap:6px; margin-bottom:6px; }
+.qr-device-info .qi-label { color:#888; min-width:64px; font-size:12px; }
+.qr-device-info .qi-value { font-weight:600; color:#333; }
+.qr-modal-actions { display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:14px; border-top:1px solid #f0f0f0; }
+.qr-modal-actions .left-btns { display:flex; gap:8px; }
 
-  .table-wrap {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
+#toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#323232; color:#fff; padding:10px 20px; border-radius:8px; font-size:13px; box-shadow:0 4px 12px rgba(0,0,0,.25); opacity:0; transition:opacity .3s; pointer-events:none; z-index:2000; white-space:nowrap; }
+#toast.show { opacity:1; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-
-  thead tr { background: #f8f9fa; }
-  thead th {
-    padding: 13px 14px;
-    text-align: left;
-    font-weight: 600;
-    color: #555;
-    border-bottom: 1px solid #e0e0e0;
-    white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
-  }
-  thead th:hover { background: #eef2fb; }
-  thead th .sort-icon { margin-left: 4px; color: #bbb; font-size: 11px; }
-  thead th.sorted .sort-icon { color: #1a73e8; }
-  thead th.no-sort { cursor: default; }
-  thead th.no-sort:hover { background: #f8f9fa; }
-
-  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: #f7f9ff; }
-
-  td { padding: 12px 14px; vertical-align: middle; }
-
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-  .badge-avail  { background: #e6f4ea; color: #1e7e34; }
-  .badge-rented { background: #fce8e6; color: #c5221f; }
-
-  .os-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-  .os-android { background: #e8f5e9; color: #2e7d32; }
-  .os-ios     { background: #e3f2fd; color: #1565c0; }
-  .os-other   { background: #f3e5f5; color: #6a1b9a; }
-
-  .actions { display: flex; gap: 5px; align-items: center; flex-wrap: nowrap; }
-
-  .empty-row td {
-    text-align: center;
-    color: #aaa;
-    padding: 48px;
-    font-size: 14px;
-  }
-
-  /* ── Modal ── */
-  .modal-overlay {
-    display: none;
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
-
-  .modal {
-    background: #fff;
-    border-radius: 14px;
-    width: 420px;
-    max-width: 95vw;
-    padding: 28px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    animation: fadeIn 0.18s ease;
-  }
-  @keyframes fadeIn { from { opacity:0; transform: translateY(-12px); } to { opacity:1; transform: none; } }
-
-  .modal h2 { font-size: 17px; margin-bottom: 20px; color: #333; }
-
-  .form-group { margin-bottom: 14px; }
-  .form-group label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 5px; }
-  .form-group input, .form-group select {
-    width: 100%; padding: 9px 12px;
-    border: 1px solid #ccc; border-radius: 6px;
-    font-size: 13px; outline: none;
-  }
-  .form-group input:focus, .form-group select:focus { border-color: #1a73e8; }
-
-  .form-row { display: flex; gap: 10px; }
-  .form-row .form-group { flex: 1; }
-
-  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
-
-  .btn-cancel { background: #f1f3f4; color: #444; }
-
-  /* Rent / Return info box */
-  .rent-info { background: #f8f9fa; border-radius: 8px; padding: 14px; margin-bottom: 18px; font-size: 13px; }
-  .rent-info .ri-row { display: flex; gap: 8px; margin-bottom: 6px; }
-  .rent-info .ri-row:last-child { margin-bottom: 0; }
-  .rent-info .ri-label { color: #888; min-width: 60px; }
-  .rent-info .ri-value { font-weight: 600; }
-
-  /* ── QR Modal ── */
-  .modal.modal-qr { width: 500px; }
-
-  .qr-modal-body {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-  }
-
-  #qr-canvas-container {
-    flex-shrink: 0;
-    width: 180px;
-    height: 180px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    background: #fff;
-    overflow: hidden;
-  }
-  #qr-canvas-container canvas,
-  #qr-canvas-container img { display: block; }
-
-  .qr-device-info { flex: 1; font-size: 13px; }
-  .qr-device-info .qi-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #222;
-    margin-bottom: 12px;
-    line-height: 1.3;
-    word-break: keep-all;
-  }
-  .qr-device-info .qi-row {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 7px;
-    align-items: flex-start;
-  }
-  .qr-device-info .qi-label {
-    color: #888;
-    min-width: 68px;
-    font-size: 12px;
-    padding-top: 2px;
-  }
-  .qr-device-info .qi-value { font-weight: 600; color: #333; }
-
-  .qr-modal-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid #f0f0f0;
-  }
-  .qr-modal-actions .left-btns { display: flex; gap: 8px; }
-
-  /* ── Toast ── */
-  #toast {
-    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
-    background: #323232; color: #fff;
-    padding: 11px 22px; border-radius: 8px;
-    font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    opacity: 0; transition: opacity 0.3s;
-    pointer-events: none; z-index: 2000; white-space: nowrap;
-  }
-  #toast.show { opacity: 1; }
-
-  /* ── Print Area (screen: hidden) ── */
-  #print-area { display: none; }
-
-  /* ── Print styles ── */
-  @media print {
-    body > *:not(#print-area) { display: none !important; }
-    #toast { display: none !important; }
-
-    #print-area {
-      display: block !important;
-      padding: 10mm;
-    }
-
-    .print-title {
-      font-size: 16pt;
-      font-weight: bold;
-      margin-bottom: 6mm;
-      padding-bottom: 3mm;
-      border-bottom: 1px solid #ccc;
-      font-family: 'Malgun Gothic', sans-serif;
-    }
-
-    .print-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 5mm;
-    }
-    .print-grid.single {
-      grid-template-columns: 200px;
-      justify-content: center;
-      margin-top: 10mm;
-    }
-
-    .qr-card {
-      border: 1px solid #bbb;
-      border-radius: 6px;
-      padding: 4mm;
-      text-align: center;
-      break-inside: avoid;
-      page-break-inside: avoid;
-      font-family: 'Malgun Gothic', sans-serif;
-    }
-
-    .qr-card img { width: 100%; max-width: 140px; height: auto; display: block; margin: 0 auto; }
-    .print-grid.single .qr-card img { max-width: 180px; }
-
-    .qr-card .qc-name {
-      font-size: 11pt;
-      font-weight: 700;
-      margin-top: 3mm;
-      color: #111;
-      line-height: 1.3;
-    }
-    .print-grid.single .qr-card .qc-name { font-size: 13pt; }
-
-    .qr-card .qc-sub  { font-size: 8pt; color: #555; margin-top: 1mm; }
-    .qr-card .qc-status {
-      display: inline-block;
-      font-size: 8pt;
-      font-weight: 700;
-      margin-top: 2mm;
-      padding: 1px 7px;
-      border-radius: 10px;
-    }
-    .qr-card .st-avail  { background: #e6f4ea; color: #1e7e34; }
-    .qr-card .st-rented { background: #fce8e6; color: #c5221f; }
-    .qr-card .qc-renter { font-size: 7.5pt; color: #444; margin-top: 1.5mm; }
-  }
-
-  @media (max-width: 768px) {
-    .container { padding: 16px; }
-    header { padding: 12px 16px; }
-    table { font-size: 12px; }
-    td, th { padding: 10px 8px; }
-    .summary-card { padding: 10px 14px; }
-    .modal.modal-qr { width: 95vw; }
-    .qr-modal-body { flex-direction: column; align-items: center; }
-  }
+#print-area { display:none; }
+@media print {
+  body > *:not(#print-area) { display:none !important; }
+  #print-area { display:block !important; padding:10mm; }
+  .print-title { font-size:14pt; font-weight:bold; margin-bottom:5mm; border-bottom:1px solid #ccc; padding-bottom:3mm; font-family:'Malgun Gothic',sans-serif; }
+  .print-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5mm; }
+  .print-grid.single { grid-template-columns:200px; justify-content:center; margin-top:10mm; }
+  .qr-card { border:1px solid #bbb; border-radius:6px; padding:4mm; text-align:center; break-inside:avoid; page-break-inside:avoid; font-family:'Malgun Gothic',sans-serif; }
+  .qr-card img { width:100%; max-width:140px; height:auto; display:block; margin:0 auto; }
+  .print-grid.single .qr-card img { max-width:180px; }
+  .qr-card .qc-name { font-size:10pt; font-weight:700; margin-top:2mm; }
+  .qr-card .qc-sub  { font-size:7.5pt; color:#555; margin-top:1mm; }
+  .qr-card .qc-status { display:inline-block; font-size:7.5pt; font-weight:700; margin-top:1.5mm; padding:1px 6px; border-radius:10px; }
+  .st-avail   { background:#e6f4ea; color:#1e7e34; }
+  .st-rented  { background:#e8f0fe; color:#1967d2; }
+  .st-broken  { background:#fff3e0; color:#e65100; }
+  .st-as      { background:#f3e8ff; color:#6a1b9a; }
+  .st-discard { background:#f1f3f4; color:#777; }
+  .qr-card .qc-renter { font-size:7pt; color:#444; margin-top:1mm; }
+}
 </style>
 </head>
 <body>
@@ -365,31 +137,23 @@
 <header>
   <h1>📱 단말기 대여/반납 현황 관리</h1>
   <div class="header-actions">
-    <button class="btn btn-white" onclick="printAllQR()">🖨️ 전체 QR 인쇄</button>
+    <button class="btn btn-white" onclick="printAllQR()">🖨️ 전체 QR</button>
     <button class="btn btn-white" onclick="openAddModal()">+ 단말기 추가</button>
   </div>
 </header>
 
 <div class="container">
-  <!-- Summary -->
   <div class="summary">
-    <div class="summary-card total">
-      <div class="label">전체 단말기</div>
-      <div class="value" id="sum-total">0</div>
-    </div>
-    <div class="summary-card avail">
-      <div class="label">보유 중</div>
-      <div class="value" id="sum-avail">0</div>
-    </div>
-    <div class="summary-card rented">
-      <div class="label">대여 중</div>
-      <div class="value" id="sum-rented">0</div>
-    </div>
+    <div class="summary-card sc-total">  <div class="lbl">전체</div><div class="val" id="sum-total">0</div></div>
+    <div class="summary-card sc-avail">  <div class="lbl">보유</div><div class="val" id="sum-avail">0</div></div>
+    <div class="summary-card sc-rented"> <div class="lbl">대여</div><div class="val" id="sum-rented">0</div></div>
+    <div class="summary-card sc-broken"> <div class="lbl">고장</div><div class="val" id="sum-broken">0</div></div>
+    <div class="summary-card sc-as">     <div class="lbl">AS</div><div class="val" id="sum-as">0</div></div>
+    <div class="summary-card sc-discard"><div class="lbl">폐기</div><div class="val" id="sum-discard">0</div></div>
   </div>
 
-  <!-- Toolbar -->
   <div class="toolbar">
-    <input class="search-box" type="text" id="search-input" placeholder="🔍  기기명 / 대여자 검색" oninput="renderTable()">
+    <input class="search-box" type="text" id="search-input" placeholder="🔍 기기명 / 자산번호 / 대여자 검색" oninput="renderTable()">
     <select class="filter-select" id="filter-os" onchange="renderTable()">
       <option value="">전체 OS</option>
       <option value="Android">Android</option>
@@ -399,52 +163,80 @@
     <select class="filter-select" id="filter-status" onchange="renderTable()">
       <option value="">전체 상태</option>
       <option value="보유">보유</option>
-      <option value="대여">대여 중</option>
+      <option value="대여">대여</option>
+      <option value="고장">고장</option>
+      <option value="AS">AS</option>
+      <option value="폐기">폐기</option>
     </select>
   </div>
 
-  <!-- Table -->
   <div class="table-wrap">
     <table>
-      <thead>
-        <tr>
-          <th onclick="sortBy('name')">기기명 <span class="sort-icon">▲▼</span></th>
-          <th onclick="sortBy('os')">OS <span class="sort-icon">▲▼</span></th>
-          <th onclick="sortBy('version')">버전 <span class="sort-icon">▲▼</span></th>
-          <th onclick="sortBy('status')">상태 <span class="sort-icon">▲▼</span></th>
-          <th onclick="sortBy('renter')">대여자 <span class="sort-icon">▲▼</span></th>
-          <th onclick="sortBy('rentDate')">대여일 <span class="sort-icon">▲▼</span></th>
-          <th onclick="sortBy('returnDate')">반납일 <span class="sort-icon">▲▼</span></th>
-          <th class="no-sort">관리</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th onclick="sortBy('assetId')">자산번호 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('name')">기기명 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('model')">모델번호 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('os')">OS <span class="si">▲▼</span></th>
+        <th onclick="sortBy('version')">버전 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('serial')">시리얼번호 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('resolution')">해상도 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('ram')">RAM <span class="si">▲▼</span></th>
+        <th onclick="sortBy('chipset')">칩셋 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('status')">상태 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('location')">위치 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('renter')">대여자 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('rentDate')">대여일 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('returnDate')">반납일 <span class="si">▲▼</span></th>
+        <th onclick="sortBy('notes')">비고 <span class="si">▲▼</span></th>
+        <th class="no-sort">관리</th>
+      </tr></thead>
       <tbody id="table-body"></tbody>
     </table>
   </div>
 </div>
 
-<!-- 단말기 추가/수정 Modal -->
+<!-- 추가/수정 Modal -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
     <h2 id="add-modal-title">단말기 추가</h2>
-    <div class="form-group">
-      <label>기기명 *</label>
-      <input type="text" id="f-name" placeholder="예) Galaxy S24, iPhone 15 Pro">
+    <div class="sec-label">기본 정보</div>
+    <div class="form-row">
+      <div class="form-group"><label>자산번호</label><input type="text" id="f-assetId" placeholder="Needs_001"></div>
+      <div class="form-group"><label>기기명 *</label><input type="text" id="f-name" placeholder="Galaxy S24"></div>
     </div>
     <div class="form-row">
-      <div class="form-group">
-        <label>OS *</label>
-        <select id="f-os">
-          <option value="Android">Android</option>
-          <option value="iOS">iOS</option>
-          <option value="기타">기타</option>
+      <div class="form-group"><label>모델번호</label><input type="text" id="f-model" placeholder="SM-S921B"></div>
+      <div class="form-group"><label>시리얼번호</label><input type="text" id="f-serial"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>OS *</label>
+        <select id="f-os"><option value="Android">Android</option><option value="iOS">iOS</option><option value="기타">기타</option></select>
+      </div>
+      <div class="form-group"><label>버전 *</label><input type="text" id="f-version" placeholder="14.0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>해상도</label><input type="text" id="f-resolution" placeholder="2340×1080"></div>
+      <div class="form-group"><label>RAM</label><input type="text" id="f-ram" placeholder="8GB"></div>
+    </div>
+    <div class="form-group"><label>칩셋</label><input type="text" id="f-chipset"></div>
+    <div class="sec-label">상태 정보</div>
+    <div class="form-row">
+      <div class="form-group"><label>상태 *</label>
+        <select id="f-status" onchange="toggleRentFields()">
+          <option value="보유">보유</option><option value="대여">대여</option>
+          <option value="고장">고장</option><option value="AS">AS</option><option value="폐기">폐기</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>버전 *</label>
-        <input type="text" id="f-version" placeholder="예) 14.0, 17.4">
-      </div>
+      <div class="form-group"><label>위치</label><input type="text" id="f-location" placeholder="서랍 보관, JK개발실 등"></div>
     </div>
+    <div id="rent-fields">
+      <div class="form-row">
+        <div class="form-group"><label>대여자</label><input type="text" id="f-renter"></div>
+        <div class="form-group"><label>대여일</label><input type="date" id="f-rentDate"></div>
+      </div>
+      <div class="form-group"><label>반납 예정일</label><input type="date" id="f-returnDate"></div>
+    </div>
+    <div class="form-group"><label>비고</label><textarea id="f-notes"></textarea></div>
     <div class="modal-actions">
       <button class="btn btn-cancel" onclick="closeModal('add-modal')">취소</button>
       <button class="btn btn-primary" onclick="saveDevice()">저장</button>
@@ -457,19 +249,11 @@
   <div class="modal">
     <h2>대여 처리</h2>
     <div class="rent-info" id="rent-info-box"></div>
-    <div class="form-group">
-      <label>대여자 이름 *</label>
-      <input type="text" id="f-renter" placeholder="이름 입력">
-    </div>
+    <div class="form-group"><label>대여자 이름 *</label><input type="text" id="rf-renter" placeholder="이름"></div>
+    <div class="form-group"><label>위치 (반출 장소)</label><input type="text" id="rf-location" placeholder="JK개발실, 인사팀 등"></div>
     <div class="form-row">
-      <div class="form-group">
-        <label>대여일 *</label>
-        <input type="date" id="f-rentDate">
-      </div>
-      <div class="form-group">
-        <label>반납 예정일</label>
-        <input type="date" id="f-returnDate">
-      </div>
+      <div class="form-group"><label>대여일 *</label><input type="date" id="rf-rentDate"></div>
+      <div class="form-group"><label>반납 예정일</label><input type="date" id="rf-returnDate"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-cancel" onclick="closeModal('rent-modal')">취소</button>
@@ -478,15 +262,12 @@
   </div>
 </div>
 
-<!-- 반납 확인 Modal -->
+<!-- 반납 Modal -->
 <div class="modal-overlay" id="return-modal">
   <div class="modal">
     <h2>반납 처리</h2>
     <div class="rent-info" id="return-info-box"></div>
-    <div class="form-group">
-      <label>반납일 *</label>
-      <input type="date" id="f-actualReturn">
-    </div>
+    <div class="form-group"><label>반납일 *</label><input type="date" id="ret-date"></div>
     <div class="modal-actions">
       <button class="btn btn-cancel" onclick="closeModal('return-modal')">취소</button>
       <button class="btn btn-return" onclick="confirmReturn()">반납 확정</button>
@@ -494,7 +275,7 @@
   </div>
 </div>
 
-<!-- QR 코드 Modal -->
+<!-- QR Modal -->
 <div class="modal-overlay" id="qr-modal">
   <div class="modal modal-qr">
     <h2>QR 코드</h2>
@@ -502,26 +283,13 @@
       <div id="qr-canvas-container"></div>
       <div class="qr-device-info">
         <div class="qi-title" id="qr-device-name"></div>
-        <div class="qi-row">
-          <span class="qi-label">OS / 버전</span>
-          <span class="qi-value" id="qr-info-os"></span>
-        </div>
-        <div class="qi-row">
-          <span class="qi-label">상태</span>
-          <span class="qi-value" id="qr-info-status"></span>
-        </div>
-        <div class="qi-row">
-          <span class="qi-label">대여자</span>
-          <span class="qi-value" id="qr-info-renter"></span>
-        </div>
-        <div class="qi-row">
-          <span class="qi-label">대여일</span>
-          <span class="qi-value" id="qr-info-rentdate"></span>
-        </div>
-        <div class="qi-row">
-          <span class="qi-label">반납 예정</span>
-          <span class="qi-value" id="qr-info-returndate"></span>
-        </div>
+        <div class="qi-row"><span class="qi-label">자산번호</span><span class="qi-value" id="qr-assetId"></span></div>
+        <div class="qi-row"><span class="qi-label">모델번호</span><span class="qi-value" id="qr-model"></span></div>
+        <div class="qi-row"><span class="qi-label">OS / 버전</span><span class="qi-value" id="qr-info-os"></span></div>
+        <div class="qi-row"><span class="qi-label">상태</span><span class="qi-value" id="qr-info-status"></span></div>
+        <div class="qi-row"><span class="qi-label">대여자</span><span class="qi-value" id="qr-info-renter"></span></div>
+        <div class="qi-row"><span class="qi-label">위치</span><span class="qi-value" id="qr-info-location"></span></div>
+        <div class="qi-row"><span class="qi-label">대여일</span><span class="qi-value" id="qr-info-rentdate"></span></div>
       </div>
     </div>
     <div class="qr-modal-actions">
@@ -534,388 +302,366 @@
   </div>
 </div>
 
-<!-- 인쇄 전용 영역 -->
 <div id="print-area"></div>
-
 <div id="toast"></div>
 
 <script>
-// ── 데이터 ──────────────────────────────────────────────
-const STORAGE_KEY = 'device_rental_data';
+const STORAGE_KEY = 'device_rental_v2';
 
 const defaultDevices = [
-  { id: 1, name: 'Galaxy S24',      os: 'Android', version: '14.0', status: '보유', renter: '',    rentDate: '',           returnDate: '' },
-  { id: 2, name: 'Galaxy S23 Ultra',os: 'Android', version: '13.0', status: '대여', renter: '김민준', rentDate: '2026-06-10', returnDate: '2026-06-20' },
-  { id: 3, name: 'iPhone 15 Pro',   os: 'iOS',     version: '17.4', status: '보유', renter: '',    rentDate: '',           returnDate: '' },
-  { id: 4, name: 'iPhone 14',       os: 'iOS',     version: '17.2', status: '대여', renter: '이서연', rentDate: '2026-06-18', returnDate: '2026-06-25' },
-  { id: 5, name: 'Galaxy A54',      os: 'Android', version: '13.0', status: '보유', renter: '',    rentDate: '',           returnDate: '' },
-  { id: 6, name: 'iPad Air 5',      os: 'iOS',     version: '17.5', status: '보유', renter: '',    rentDate: '',           returnDate: '' },
+  // ── 대여 중 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  {id:1,  assetId:'Needs_025', name:'Galaxy Note 10+',       model:'SM-N975F',    os:'Android', version:'10.0.0', serial:'R35M7069X3N',    resolution:'1440×3040', ram:'12GB', chipset:'Mali-G76 MP12 Core',     status:'대여', location:'',        renter:'고준민', rentDate:'2025-08-25', returnDate:'', notes:''},
+  {id:2,  assetId:'Needs_040', name:'Galaxy S24 Ultra 5G',   model:'SM-S928N',    os:'Android', version:'14',     serial:'R3CWC0C4E6D',   resolution:'3120×1440', ram:'12GB', chipset:'Qualcomm Adreno 750',    status:'대여', location:'인사팀',   renter:'권유경', rentDate:'',           returnDate:'', notes:''},
+  {id:3,  assetId:'Needs_003', name:'Galaxy S8',              model:'SM-G950N',    os:'Android', version:'7.0.0',  serial:'R39J304F8EZ',   resolution:'1440×2960', ram:'4GB',  chipset:'Mali-G71 MP20 550MHz',   status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:''},
+  {id:4,  assetId:'Needs_004', name:'Galaxy S9',              model:'SM-G960F',    os:'Android', version:'10.0.0', serial:'R58K31MKJTB',   resolution:'1440×2960', ram:'4GB',  chipset:'Hi-G72 MP18 572MHz',     status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:'고장, 확인_김덕영'},
+  {id:5,  assetId:'Needs_006', name:'Galaxy S10e',            model:'SM-G970F',    os:'Android', version:'10.0.0', serial:'RF8KC29P42V',   resolution:'1080×2280', ram:'6GB',  chipset:'Hi-G72 MP12 720MHz',     status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:''},
+  {id:6,  assetId:'Needs_013', name:'Galaxy Note 9',          model:'SM-N960F',    os:'Android', version:'8.1.0',  serial:'RF8K61SR4NY',   resolution:'1440×2960', ram:'6GB',  chipset:'ARM Mali-G72',           status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:'확인_김덕영'},
+  {id:7,  assetId:'Needs_021', name:'Galaxy Note 8',          model:'SM-N950U',    os:'Android', version:'9.0.0',  serial:'R38J9O2QF8E',   resolution:'1440×2960', ram:'6GB',  chipset:'Qualcomm Adreno 540',    status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:''},
+  {id:8,  assetId:'Needs_022', name:'Galaxy Note 10',         model:'SM-N970F',    os:'Android', version:'10.0.0', serial:'R38M60HT17B',   resolution:'1080×2280', ram:'8GB',  chipset:'Mali-G76 MP12 Core',     status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:'확인_김정환'},
+  {id:9,  assetId:'Needs_052', name:'iPhone 12',              model:'A2403',       os:'iOS',     version:'15.1.1', serial:'G6TDH1C60F0R',  resolution:'1170×2532', ram:'4GB',  chipset:'Apple A14',              status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:'장현님 애플라인만 우선 확인해주시면 됩니다.'},
+  {id:10, assetId:'Needs_053', name:'iPhone 6S+',             model:'MKU82KH/A',   os:'iOS',     version:'14.5.0', serial:'C37QK8DSGRX2',  resolution:'1080×1920', ram:'2GB',  chipset:'Apple A9',               status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:''},
+  {id:11, assetId:'NSG-C0436', name:'iPhone 12 Pro',          model:'MGMT3KH/A',   os:'iOS',     version:'18.3.1', serial:'DNPDJ37K0D95',  resolution:'2778×1284', ram:'6GB',  chipset:'Apple A14 Bionic',       status:'대여', location:'JK개발실', renter:'김덕영', rentDate:'2026-04-27', returnDate:'', notes:''},
+  {id:12, assetId:'Needs_051', name:'iPhone X',               model:'MQAC2KH/A',   os:'iOS',     version:'13.3.1', serial:'G6VWYNYTLJCLK', resolution:'1125×2346', ram:'3GB',  chipset:'Apple A11',              status:'대여', location:'인사팀',   renter:'전다우', rentDate:'',           returnDate:'', notes:''},
+  {id:13, assetId:'NSG-C0475', name:'iPad Air5',              model:'MM6R3KH/A',   os:'iOS',     version:'17.3',   serial:'Y5CX61V3R9',    resolution:'',          ram:'',     chipset:'',                       status:'대여', location:'',        renter:'황진국', rentDate:'2025-09-01', returnDate:'', notes:'내잠금화면 비번 000000'},
+  // ── AS ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  {id:14, assetId:'Needs_042', name:'Galaxy S24',             model:'SM-S921B',    os:'Android', version:'14',     serial:'R3CW909TQDJ',   resolution:'2340×1080', ram:'8GB',  chipset:'Qualcomm Adreno 750',    status:'AS',   location:'삼성 지원', renter:'안상용', rentDate:'2025-08-29', returnDate:'', notes:'삼성 지원'},
+  {id:15, assetId:'Needs_041', name:'Galaxy S24 Ultra 5G',   model:'SM-S928N',    os:'Android', version:'14',     serial:'R3CW808W0VM',   resolution:'3120×1080', ram:'12GB', chipset:'Qualcomm Adreno 750',    status:'AS',   location:'삼성 지원', renter:'황진국', rentDate:'2025-04-01', returnDate:'', notes:'삼성 지원'},
+  // ── 보유 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  {id:16, assetId:'Needs_007', name:'Galaxy S10+',            model:'SM-G975U',    os:'Android', version:'10.0.0', serial:'R85KC4AZV3D',   resolution:'1440×3040', ram:'8GB',  chipset:'Mali-G77 MP11 Core',     status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:17, assetId:'Needs_008', name:'Galaxy S20+',            model:'SM-G985F',    os:'Android', version:'10.0.0', serial:'R58N10CX4PT',   resolution:'1440×3040', ram:'8GB',  chipset:'Mali-G77 MP11 Core',     status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:18, assetId:'Needs_010', name:'Galaxy S20+ 5G',         model:'SM-G986U',    os:'Android', version:'10.0.0', serial:'R3CMA0EGT4M',   resolution:'1440×3200', ram:'12GB', chipset:'Qualcomm Adreno 650',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:19, assetId:'Needs_011', name:'Galaxy Note 8',          model:'SM-N950F',    os:'Android', version:'7.1.1',  serial:'R58J906Z2MB',   resolution:'1440×2960', ram:'6GB',  chipset:'Qualcomm Adreno 540',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:20, assetId:'Needs_011', name:'Galaxy S20+ 5G',         model:'SM-G986U',    os:'Android', version:'10.0.0', serial:'R3CMB0B7CPE',   resolution:'1440×3200', ram:'12GB', chipset:'Qualcomm Adreno 650',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:21, assetId:'Needs_012', name:'Galaxy S20+ 5G',         model:'SM-G986N',    os:'Android', version:'10.0.0', serial:'R3CMB0PVKA',    resolution:'1080×3200', ram:'12GB', chipset:'Mali-G77 MP11 Core',     status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:22, assetId:'Needs_023', name:'Galaxy Note 10',         model:'SM-N970F',    os:'Android', version:'10.0.0', serial:'R38M60ECJFV',   resolution:'1080×2280', ram:'8GB',  chipset:'Mali-G76 MP12 Core',     status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:23, assetId:'Needs_024', name:'Galaxy Note 10 5G',      model:'SM-N971N',    os:'Android', version:'10.0.0', serial:'ce9769ea82197e35',resolution:'1080×2280',ram:'8GB',  chipset:'Mali-G76 MP12 Core',     status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:24, assetId:'Needs_026', name:'Galaxy Note 10+ 5G',     model:'SM-N976V',    os:'Android', version:'10.0.0', serial:'R3CM702GWP',    resolution:'1440×3040', ram:'12GB', chipset:'Mali-G76 MP12 Core',     status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:25, assetId:'Needs_028', name:'Galaxy Note20 Ultra 5G', model:'SM-N986U',    os:'Android', version:'10.0.0', serial:'R3CN60M93RD',   resolution:'1440×3088', ram:'12GB', chipset:'Qualcomm Adreno 650',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:26, assetId:'Needs_029', name:'Galaxy Note20 Ultra 5G', model:'SM-N986B',    os:'Android', version:'10.0.0', serial:'R3CN40CCT9D',   resolution:'1440×3088', ram:'12GB', chipset:'ARM Mali-G77 MP11 Core', status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:27, assetId:'Needs_030', name:'Galaxy Note20 Ultra 5G', model:'SM-N986N',    os:'Android', version:'10.0.0', serial:'R3CN60P43TL',   resolution:'1440×3088', ram:'12GB', chipset:'Qualcomm Adreno 650',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:28, assetId:'Needs_031', name:'Galaxy Fold',            model:'SM-F900F',    os:'Android', version:'9.0.0',  serial:'R38303A3C3L',   resolution:'1680 main', ram:'12GB', chipset:'Qualcomm Adreno 640',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:29, assetId:'Needs_033', name:'Galaxy Fold 5G',         model:'SM-F907B',    os:'Android', version:'10.0.0', serial:'R3CM704DA3B',   resolution:'1680 main', ram:'12GB', chipset:'Qualcomm Adreno 640',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:30, assetId:'Needs_035', name:'Galaxy Note 9',          model:'SM-N960F',    os:'Android', version:'8.1.0',  serial:'RF8K80A541W',   resolution:'1440×2960', ram:'6GB',  chipset:'ARM Mali-G72',           status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:31, assetId:'Needs_036', name:'Galaxy Note 9',          model:'SM-N960U',    os:'Android', version:'8.1.0',  serial:'RF8K80MQKMJ',   resolution:'1440×2960', ram:'6GB',  chipset:'Qualcomm Adreno 630',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:32, assetId:'Needs_037', name:'Galaxy S22+ 5G',         model:'SM-S906B/DS', os:'Android', version:'12',     serial:'RFCRC1ZAZDE',   resolution:'1080×2340', ram:'8GB',  chipset:'Samsung Xclipse 920',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:33, assetId:'Needs_038', name:'Galaxy S22+ 5G',         model:'SM-S906B/DS', os:'Android', version:'12',     serial:'RFCRC1ZAVYY',   resolution:'1080×2340', ram:'8GB',  chipset:'Samsung Xclipse 920',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:34, assetId:'Needs_039', name:'Galaxy S22+ 5G',         model:'SM-S906B/DS', os:'Android', version:'12',     serial:'RFCRC1ZAW0D',   resolution:'1080×2340', ram:'8GB',  chipset:'Samsung Xclipse 920',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:35, assetId:'Needs_043', name:'Galaxy S24',             model:'SM-S921B',    os:'Android', version:'14',     serial:'RFCWB0LQK4Z',   resolution:'2340×1080', ram:'8GB',  chipset:'Qualcomm Adreno 750',    status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:'삼성 지원'},
+  {id:36, assetId:'Needs_054', name:'iPad Air2',              model:'MGKM2J/A',    os:'iOS',     version:'15.3.1', serial:'DMQNR63EG5VY',  resolution:'1536×2048', ram:'2GB',  chipset:'Apple A8X',              status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:37, assetId:'Needs_056', name:'Galaxy S23',             model:'SM-S911N',    os:'Android', version:'13',     serial:'R3CT90DA5DE',   resolution:'2340×1080', ram:'8GB',  chipset:'스냅드래곤 8 Gen 2',      status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:38, assetId:'Needs_055', name:'Galaxy S23 Ultra',       model:'SM-S918U',    os:'Android', version:'13',     serial:'R5CTB1442QY',   resolution:'3088×1440', ram:'12GB', chipset:'스냅드래곤 8 Gen 2',      status:'보유', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:''},
+  // ── 고장 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  {id:39, assetId:'Needs_005', name:'Galaxy S9',              model:'SM-G960U',    os:'Android', version:'9.0.0',  serial:'R38K303F71T',   resolution:'1440×2960', ram:'4GB',  chipset:'Qualcomm Adreno 630',    status:'고장', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:'고장'},
+  {id:40, assetId:'Needs_032', name:'Galaxy Fold',            model:'SM-F900F',    os:'Android', version:'9.0.0',  serial:'R38M30A3B2W',   resolution:'1680 main', ram:'12GB', chipset:'Qualcomm Adreno 640',    status:'고장', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:'패널 및 접힘이상'},
+  {id:41, assetId:'Needs_034', name:'Galaxy Z Fold 2',        model:'SM-F916N',    os:'Android', version:'10.0.0', serial:'R3CN703CCKL',   resolution:'2208×1768', ram:'12GB', chipset:'Qualcomm Adreno 650',    status:'고장', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:'고장'},
+  {id:42, assetId:'-',         name:'Galaxy Z Fold 5',        model:'SM-F946U',    os:'Android', version:'13',     serial:'R3CW40NS7WZ',   resolution:'2176×1812', ram:'12GB', chipset:'스냅드래곤 8 Gen 2',      status:'고장', location:'서랍 보관', renter:'', rentDate:'', returnDate:'', notes:'고장'},
+  // ── 폐기 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  {id:43, assetId:'Needs_001', name:'Galaxy S7',              model:'SM-G930L',    os:'Android', version:'8.0.0',  serial:'R39H5039CY',    resolution:'1440×2560', ram:'4GB',  chipset:'T-880 MP12.650MHz',      status:'폐기', location:'', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:44, assetId:'Needs_002', name:'Galaxy S8',              model:'SM-G950U',    os:'Android', version:'8.0.0',  serial:'R38J30FK9BM',   resolution:'1440×2960', ram:'4GB',  chipset:'Qualcomm Adreno 540',    status:'폐기', location:'', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:45, assetId:'Needs_009', name:'Galaxy S20+',            model:'SM-G985F/DS', os:'Android', version:'10.0.0', serial:'R58N10CX42D',   resolution:'1440×3040', ram:'8GB',  chipset:'Qualcomm Adreno 640',    status:'폐기', location:'', renter:'', rentDate:'', returnDate:'', notes:''},
+  {id:46, assetId:'Needs_027', name:'Galaxy Note20 Ultra 5G', model:'SM-N986U',    os:'Android', version:'10.0.0', serial:'R3CN502D9HV',   resolution:'1440×3088', ram:'8GB',  chipset:'Qualcomm Adreno 650',    status:'폐기', location:'', renter:'', rentDate:'', returnDate:'', notes:''},
 ];
 
 let devices = load();
-let nextId = devices.length ? Math.max(...devices.map(d => d.id)) + 1 : 1;
-let editingId = null;
-let actionId  = null;
-let sortKey   = '';
-let sortAsc   = true;
+let nextId = devices.length ? Math.max(...devices.map(d=>d.id))+1 : 47;
+let editingId=null, actionId=null, sortKey='', sortAsc=true, qrInstance=null;
 
 function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [...defaultDevices];
-  } catch { return [...defaultDevices]; }
+  try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):defaultDevices.map(d=>({...d})); }
+  catch { return defaultDevices.map(d=>({...d})); }
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(devices)); }
+
+// ── 렌더링 ───────────────────────────────────────────────
+const STATUS_BADGE = { 보유:'badge-avail', 대여:'badge-rented', 고장:'badge-broken', AS:'badge-as', 폐기:'badge-discard' };
+const STATUS_PRINT = { 보유:'st-avail',   대여:'st-rented',   고장:'st-broken',   AS:'st-as',   폐기:'st-discard' };
+
+function statusBadge(s) {
+  return `<span class="badge ${STATUS_BADGE[s]||'badge-discard'}">${esc(s)}</span>`;
 }
 
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
-}
-
-// ── 테이블 렌더링 ────────────────────────────────────────
 function renderTable() {
-  const search      = document.getElementById('search-input').value.toLowerCase();
-  const filterOs    = document.getElementById('filter-os').value;
-  const filterStatus= document.getElementById('filter-status').value;
+  const q   = document.getElementById('search-input').value.toLowerCase();
+  const fOs = document.getElementById('filter-os').value;
+  const fSt = document.getElementById('filter-status').value;
 
-  let list = devices.filter(d => {
-    const matchSearch = d.name.toLowerCase().includes(search) || d.renter.toLowerCase().includes(search);
-    const matchOs     = !filterOs || d.os === filterOs;
-    const matchStatus = !filterStatus ||
-      (filterStatus === '보유' && d.status === '보유') ||
-      (filterStatus === '대여' && d.status === '대여');
-    return matchSearch && matchOs && matchStatus;
-  });
+  let list = devices.filter(d =>
+    (!q || d.name.toLowerCase().includes(q) || d.assetId.toLowerCase().includes(q) || d.renter.toLowerCase().includes(q) || d.model.toLowerCase().includes(q)) &&
+    (!fOs || d.os===fOs) &&
+    (!fSt || d.status===fSt)
+  );
 
   if (sortKey) {
-    list.sort((a, b) => {
-      const va = (a[sortKey] || '').toLowerCase();
-      const vb = (b[sortKey] || '').toLowerCase();
+    list.sort((a,b) => {
+      const va=(a[sortKey]||'').toLowerCase(), vb=(b[sortKey]||'').toLowerCase();
       return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
     });
   }
 
   const tbody = document.getElementById('table-body');
-
-  if (list.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">검색 결과가 없습니다.</td></tr>';
-    updateSummary();
-    return;
+  if (!list.length) {
+    tbody.innerHTML='<tr class="empty-row"><td colspan="16">검색 결과가 없습니다.</td></tr>';
+    updateSummary(); return;
   }
 
   tbody.innerHTML = list.map(d => {
-    const osCls      = d.os === 'Android' ? 'os-android' : d.os === 'iOS' ? 'os-ios' : 'os-other';
-    const statusBadge= d.status === '보유'
-      ? '<span class="badge badge-avail">보유</span>'
-      : '<span class="badge badge-rented">대여 중</span>';
-    const actionBtn  = d.status === '보유'
-      ? `<button class="btn btn-rent"   onclick="openRentModal(${d.id})">대여</button>`
-      : `<button class="btn btn-return" onclick="openReturnModal(${d.id})">반납</button>`;
-
-    return `
-    <tr>
+    const osCls = d.os==='Android'?'os-android':d.os==='iOS'?'os-ios':'os-other';
+    let actionBtn = '';
+    if      (d.status==='보유') actionBtn=`<button class="btn btn-rent"   onclick="openRentModal(${d.id})">대여</button>`;
+    else if (d.status==='대여') actionBtn=`<button class="btn btn-return" onclick="openReturnModal(${d.id})">반납</button>`;
+    const rdDisplay = d.returnDate && d.status==='대여' && d.returnDate<today()
+      ? `<span style="color:#ea4335;font-weight:600">${esc(d.returnDate)} ⚠️</span>`
+      : (d.returnDate||'<span style="color:#bbb">-</span>');
+    return `<tr>
+      <td>${esc(d.assetId)}</td>
       <td><strong>${esc(d.name)}</strong></td>
+      <td>${esc(d.model)||'-'}</td>
       <td><span class="os-badge ${osCls}">${esc(d.os)}</span></td>
       <td>${esc(d.version)}</td>
-      <td>${statusBadge}</td>
-      <td>${esc(d.renter) || '<span style="color:#bbb">-</span>'}</td>
-      <td>${esc(d.rentDate) || '<span style="color:#bbb">-</span>'}</td>
-      <td>${returnDateDisplay(d)}</td>
-      <td>
-        <div class="actions">
-          ${actionBtn}
-          <button class="btn btn-qr" title="QR 코드 보기" onclick="openQRModal(${d.id})">QR</button>
-          <button class="btn-icon" title="수정"  onclick="openEditModal(${d.id})">✏️</button>
-          <button class="btn-icon" title="삭제"  onclick="deleteDevice(${d.id})">🗑️</button>
-        </div>
-      </td>
+      <td><span class="trunc" title="${esc(d.serial)}">${esc(d.serial)||'-'}</span></td>
+      <td>${esc(d.resolution)||'-'}</td>
+      <td>${esc(d.ram)||'-'}</td>
+      <td><span class="trunc" title="${esc(d.chipset)}">${esc(d.chipset)||'-'}</span></td>
+      <td>${statusBadge(d.status)}</td>
+      <td>${esc(d.location)||'-'}</td>
+      <td>${esc(d.renter)||'<span style="color:#bbb">-</span>'}</td>
+      <td>${esc(d.rentDate)||'<span style="color:#bbb">-</span>'}</td>
+      <td>${rdDisplay}</td>
+      <td><span class="trunc" title="${esc(d.notes)}">${esc(d.notes)||'-'}</span></td>
+      <td><div class="actions">
+        ${actionBtn}
+        <button class="btn btn-qr"  onclick="openQRModal(${d.id})">QR</button>
+        <button class="btn-icon"    onclick="openEditModal(${d.id})" title="수정">✏️</button>
+        <button class="btn-icon"    onclick="deleteDevice(${d.id})"  title="삭제">🗑️</button>
+      </div></td>
     </tr>`;
   }).join('');
-
   updateSummary();
 }
 
-function returnDateDisplay(d) {
-  if (!d.returnDate) return '<span style="color:#bbb">-</span>';
-  if (d.status === '대여') {
-    if (d.returnDate < today()) {
-      return `<span style="color:#ea4335;font-weight:600">${esc(d.returnDate)} ⚠️</span>`;
-    }
-  }
-  return esc(d.returnDate);
-}
-
 function updateSummary() {
-  document.getElementById('sum-total').textContent  = devices.length;
-  document.getElementById('sum-avail').textContent  = devices.filter(d => d.status === '보유').length;
-  document.getElementById('sum-rented').textContent = devices.filter(d => d.status === '대여').length;
+  document.getElementById('sum-total').textContent   = devices.length;
+  document.getElementById('sum-avail').textContent   = devices.filter(d=>d.status==='보유').length;
+  document.getElementById('sum-rented').textContent  = devices.filter(d=>d.status==='대여').length;
+  document.getElementById('sum-broken').textContent  = devices.filter(d=>d.status==='고장').length;
+  document.getElementById('sum-as').textContent      = devices.filter(d=>d.status==='AS').length;
+  document.getElementById('sum-discard').textContent = devices.filter(d=>d.status==='폐기').length;
 }
 
-function esc(str) {
-  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-// ── 정렬 ────────────────────────────────────────────────
+// ── 정렬 ─────────────────────────────────────────────────
 function sortBy(key) {
-  if (sortKey === key) sortAsc = !sortAsc;
-  else { sortKey = key; sortAsc = true; }
-
-  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
-  const idx = ['name','os','version','status','renter','rentDate','returnDate'].indexOf(key);
-  if (idx >= 0) document.querySelectorAll('thead th')[idx].classList.add('sorted');
-
+  sortAsc = sortKey===key ? !sortAsc : true;
+  sortKey = key;
+  document.querySelectorAll('thead th').forEach(th=>th.classList.remove('sorted'));
+  const idx=['assetId','name','model','os','version','serial','resolution','ram','chipset','status','location','renter','rentDate','returnDate','notes'].indexOf(key);
+  if(idx>=0) document.querySelectorAll('thead th')[idx].classList.add('sorted');
   renderTable();
 }
 
-// ── 단말기 추가/수정 ─────────────────────────────────────
+// ── 추가/수정 ─────────────────────────────────────────────
 function openAddModal() {
-  editingId = null;
-  document.getElementById('add-modal-title').textContent = '단말기 추가';
-  document.getElementById('f-name').value    = '';
-  document.getElementById('f-os').value      = 'Android';
-  document.getElementById('f-version').value = '';
+  editingId=null;
+  document.getElementById('add-modal-title').textContent='단말기 추가';
+  ['assetId','name','model','serial','version','resolution','ram','chipset','location','renter','notes'].forEach(f=>document.getElementById('f-'+f).value='');
+  document.getElementById('f-os').value='Android';
+  document.getElementById('f-status').value='보유';
+  document.getElementById('f-rentDate').value='';
+  document.getElementById('f-returnDate').value='';
+  toggleRentFields();
   openModal('add-modal');
-  setTimeout(() => document.getElementById('f-name').focus(), 100);
+  setTimeout(()=>document.getElementById('f-name').focus(),100);
 }
 
 function openEditModal(id) {
-  const d = devices.find(x => x.id === id);
-  if (!d) return;
-  editingId = id;
-  document.getElementById('add-modal-title').textContent = '단말기 수정';
-  document.getElementById('f-name').value    = d.name;
-  document.getElementById('f-os').value      = d.os;
-  document.getElementById('f-version').value = d.version;
+  const d=devices.find(x=>x.id===id); if(!d) return;
+  editingId=id;
+  document.getElementById('add-modal-title').textContent='단말기 수정';
+  ['assetId','name','model','serial','version','resolution','ram','chipset','location','renter','rentDate','returnDate','notes'].forEach(f=>{
+    const el=document.getElementById('f-'+f); if(el) el.value=d[f]||'';
+  });
+  document.getElementById('f-os').value=d.os;
+  document.getElementById('f-status').value=d.status;
+  toggleRentFields();
   openModal('add-modal');
 }
 
+function toggleRentFields() {
+  const st=document.getElementById('f-status').value;
+  document.getElementById('rent-fields').style.display=(st==='보유'||st==='고장'||st==='폐기')?'none':'block';
+}
+
 function saveDevice() {
-  const name    = document.getElementById('f-name').value.trim();
-  const os      = document.getElementById('f-os').value;
-  const version = document.getElementById('f-version').value.trim();
-
-  if (!name || !version) { toast('기기명과 버전을 입력해주세요.'); return; }
-
-  if (editingId) {
-    const d = devices.find(x => x.id === editingId);
-    if (d) { d.name = name; d.os = os; d.version = version; }
-    toast('단말기 정보가 수정되었습니다.');
-  } else {
-    devices.push({ id: nextId++, name, os, version, status: '보유', renter: '', rentDate: '', returnDate: '' });
-    toast('단말기가 추가되었습니다.');
-  }
-
+  const g=f=>document.getElementById('f-'+f).value.trim();
+  if(!g('name')||!g('version')){toast('기기명과 버전을 입력해주세요.');return;}
+  const data={
+    assetId:g('assetId'),name:g('name'),model:g('model'),os:document.getElementById('f-os').value,
+    version:g('version'),serial:g('serial'),resolution:g('resolution'),ram:g('ram'),chipset:g('chipset'),
+    status:document.getElementById('f-status').value,location:g('location'),
+    renter:g('renter'),rentDate:document.getElementById('f-rentDate').value,
+    returnDate:document.getElementById('f-returnDate').value,notes:g('notes'),
+  };
+  if(editingId){ const d=devices.find(x=>x.id===editingId); if(d) Object.assign(d,data); toast('수정되었습니다.'); }
+  else         { devices.push({id:nextId++,...data}); toast('단말기가 추가되었습니다.'); }
   save(); closeModal('add-modal'); renderTable();
 }
 
 function deleteDevice(id) {
-  const d = devices.find(x => x.id === id);
-  if (!d) return;
-  if (d.status === '대여') { toast('대여 중인 단말기는 삭제할 수 없습니다.'); return; }
-  if (!confirm(`"${d.name}"을(를) 삭제하시겠습니까?`)) return;
-  devices = devices.filter(x => x.id !== id);
-  save(); renderTable();
-  toast('단말기가 삭제되었습니다.');
+  const d=devices.find(x=>x.id===id); if(!d) return;
+  if(d.status==='대여'){toast('대여 중인 단말기는 삭제할 수 없습니다.');return;}
+  if(!confirm(`"${d.name}"을(를) 삭제하시겠습니까?`)) return;
+  devices=devices.filter(x=>x.id!==id); save(); renderTable(); toast('삭제되었습니다.');
 }
 
 // ── 대여 ─────────────────────────────────────────────────
 function openRentModal(id) {
-  actionId = id;
-  const d = devices.find(x => x.id === id);
-  document.getElementById('rent-info-box').innerHTML = `
+  actionId=id; const d=devices.find(x=>x.id===id);
+  document.getElementById('rent-info-box').innerHTML=`
     <div class="ri-row"><span class="ri-label">기기명</span><span class="ri-value">${esc(d.name)}</span></div>
-    <div class="ri-row"><span class="ri-label">OS</span><span class="ri-value">${esc(d.os)} ${esc(d.version)}</span></div>`;
-  document.getElementById('f-renter').value    = '';
-  document.getElementById('f-rentDate').value  = today();
-  document.getElementById('f-returnDate').value = '';
+    <div class="ri-row"><span class="ri-label">모델</span><span class="ri-value">${esc(d.model)}</span></div>`;
+  document.getElementById('rf-renter').value='';
+  document.getElementById('rf-location').value='';
+  document.getElementById('rf-rentDate').value=today();
+  document.getElementById('rf-returnDate').value='';
   openModal('rent-modal');
-  setTimeout(() => document.getElementById('f-renter').focus(), 100);
+  setTimeout(()=>document.getElementById('rf-renter').focus(),100);
 }
 
 function confirmRent() {
-  const renter     = document.getElementById('f-renter').value.trim();
-  const rentDate   = document.getElementById('f-rentDate').value;
-  const returnDate = document.getElementById('f-returnDate').value;
-
-  if (!renter || !rentDate)            { toast('대여자 이름과 대여일을 입력해주세요.'); return; }
-  if (returnDate && returnDate < rentDate) { toast('반납 예정일은 대여일 이후여야 합니다.'); return; }
-
-  const d = devices.find(x => x.id === actionId);
-  d.status = '대여'; d.renter = renter; d.rentDate = rentDate; d.returnDate = returnDate;
+  const renter=document.getElementById('rf-renter').value.trim();
+  const loc=document.getElementById('rf-location').value.trim();
+  const rentDate=document.getElementById('rf-rentDate').value;
+  const returnDate=document.getElementById('rf-returnDate').value;
+  if(!renter||!rentDate){toast('대여자 이름과 대여일을 입력해주세요.');return;}
+  if(returnDate&&returnDate<rentDate){toast('반납 예정일은 대여일 이후여야 합니다.');return;}
+  const d=devices.find(x=>x.id===actionId);
+  Object.assign(d,{status:'대여',renter,location:loc,rentDate,returnDate});
   save(); closeModal('rent-modal'); renderTable();
   toast(`"${d.name}" 대여 처리되었습니다.`);
 }
 
 // ── 반납 ─────────────────────────────────────────────────
 function openReturnModal(id) {
-  actionId = id;
-  const d = devices.find(x => x.id === id);
-  document.getElementById('return-info-box').innerHTML = `
+  actionId=id; const d=devices.find(x=>x.id===id);
+  document.getElementById('return-info-box').innerHTML=`
     <div class="ri-row"><span class="ri-label">기기명</span><span class="ri-value">${esc(d.name)}</span></div>
     <div class="ri-row"><span class="ri-label">대여자</span><span class="ri-value">${esc(d.renter)}</span></div>
     <div class="ri-row"><span class="ri-label">대여일</span><span class="ri-value">${esc(d.rentDate)}</span></div>
-    <div class="ri-row"><span class="ri-label">반납 예정</span><span class="ri-value">${d.returnDate || '-'}</span></div>`;
-  document.getElementById('f-actualReturn').value = today();
+    <div class="ri-row"><span class="ri-label">반납 예정</span><span class="ri-value">${d.returnDate||'-'}</span></div>`;
+  document.getElementById('ret-date').value=today();
   openModal('return-modal');
 }
 
 function confirmReturn() {
-  const returnDate = document.getElementById('f-actualReturn').value;
-  if (!returnDate) { toast('반납일을 입력해주세요.'); return; }
-
-  const d = devices.find(x => x.id === actionId);
-  d.status = '보유'; d.returnDate = returnDate;
+  const returnDate=document.getElementById('ret-date').value;
+  if(!returnDate){toast('반납일을 입력해주세요.');return;}
+  const d=devices.find(x=>x.id===actionId);
+  Object.assign(d,{status:'보유',renter:'',location:'서랍 보관',returnDate});
   save(); closeModal('return-modal'); renderTable();
   toast(`"${d.name}" 반납 처리되었습니다.`);
 }
 
-// ── QR 코드 ──────────────────────────────────────────────
+// ── QR ───────────────────────────────────────────────────
 function buildQRText(d) {
-  const lines = [
-    d.name,
-    `${d.os} ${d.version}`,
-    d.status === '보유' ? 'Available' : `Rented by: ${d.renter}`,
-  ];
-  if (d.rentDate)   lines.push(`From: ${d.rentDate}`);
-  if (d.returnDate) lines.push(`Due:  ${d.returnDate}`);
+  const lines=[d.name,`${d.os} ${d.version}`];
+  if(d.assetId&&d.assetId!=='-') lines.push(`ID: ${d.assetId}`);
+  lines.push(d.status==='대여'?`Rented: ${d.renter}`:d.status==='보유'?'Available':d.status);
+  if(d.rentDate)   lines.push(`From: ${d.rentDate}`);
+  if(d.returnDate) lines.push(`Due:  ${d.returnDate}`);
   return lines.join('\n');
 }
 
-let qrInstance = null;
-
 function openQRModal(id) {
-  const d = devices.find(x => x.id === id);
-  if (!d) return;
-  actionId = id;
-
-  document.getElementById('qr-device-name').textContent    = d.name;
-  document.getElementById('qr-info-os').textContent        = `${d.os} / ${d.version}`;
-  document.getElementById('qr-info-renter').textContent    = d.renter || '-';
-  document.getElementById('qr-info-rentdate').textContent  = d.rentDate || '-';
-  document.getElementById('qr-info-returndate').textContent= d.returnDate || '-';
-
-  const statusEl = document.getElementById('qr-info-status');
-  if (d.status === '보유') {
-    statusEl.innerHTML = '<span class="badge badge-avail">보유</span>';
-  } else {
-    statusEl.innerHTML = '<span class="badge badge-rented">대여 중</span>';
-  }
-
+  const d=devices.find(x=>x.id===id); if(!d) return;
+  actionId=id;
+  document.getElementById('qr-device-name').textContent   =d.name;
+  document.getElementById('qr-assetId').textContent       =d.assetId||'-';
+  document.getElementById('qr-model').textContent         =d.model||'-';
+  document.getElementById('qr-info-os').textContent       =`${d.os} / ${d.version}`;
+  document.getElementById('qr-info-renter').textContent   =d.renter||'-';
+  document.getElementById('qr-info-location').textContent =d.location||'-';
+  document.getElementById('qr-info-rentdate').textContent =d.rentDate||'-';
+  document.getElementById('qr-info-status').innerHTML     =statusBadge(d.status);
   openModal('qr-modal');
-
-  const container = document.getElementById('qr-canvas-container');
-  container.innerHTML = '';
-  if (qrInstance) { try { qrInstance.clear(); } catch(e) {} qrInstance = null; }
-
-  if (typeof QRCode === 'undefined') {
-    container.innerHTML = '<div style="font-size:12px;color:#ea4335;text-align:center;padding:12px;line-height:1.6;">QR 라이브러리 로드 실패<br>인터넷 연결을 확인해주세요</div>';
+  const container=document.getElementById('qr-canvas-container');
+  container.innerHTML='';
+  if(qrInstance){try{qrInstance.clear();}catch(e){} qrInstance=null;}
+  if(typeof QRCode==='undefined'){
+    container.innerHTML='<div style="font-size:11px;color:#ea4335;text-align:center;padding:12px;line-height:1.6;">QR 라이브러리 로드 실패<br>인터넷 연결 확인</div>';
     return;
   }
-
-  try {
-    qrInstance = new QRCode(container, {
-      text: buildQRText(d),
-      width: 176,
-      height: 176,
-      correctLevel: QRCode.CorrectLevel.L,
-    });
-  } catch(e) {
-    container.innerHTML = '<div style="font-size:12px;color:#ea4335;text-align:center;padding:12px;">QR 생성 오류: ' + e.message + '</div>';
-  }
+  try { qrInstance=new QRCode(container,{text:buildQRText(d),width:176,height:176,correctLevel:QRCode.CorrectLevel.L}); }
+  catch(e){ container.innerHTML=`<div style="font-size:11px;color:#ea4335;text-align:center;padding:12px;">QR 오류: ${e.message}</div>`; }
 }
 
 function downloadQR() {
-  const canvas = document.querySelector('#qr-canvas-container canvas');
-  if (!canvas) { toast('QR 이미지를 찾을 수 없습니다.'); return; }
-  const d = devices.find(x => x.id === actionId);
-  const a = document.createElement('a');
-  a.download = `QR_${d ? d.name.replace(/\s/g,'_') : 'device'}.png`;
-  a.href = canvas.toDataURL('image/png');
-  a.click();
-  toast('QR 이미지를 저장했습니다.');
+  const c=document.querySelector('#qr-canvas-container canvas');
+  if(!c){toast('QR 이미지를 찾을 수 없습니다.');return;}
+  const d=devices.find(x=>x.id===actionId);
+  const a=document.createElement('a');
+  a.download=`QR_${d?d.name.replace(/\s/g,'_'):'device'}.png`;
+  a.href=c.toDataURL('image/png'); a.click(); toast('QR 이미지를 저장했습니다.');
 }
 
 function printSingleQR() {
-  const canvas = document.querySelector('#qr-canvas-container canvas');
-  if (!canvas) { toast('QR 이미지를 찾을 수 없습니다.'); return; }
-  const d = devices.find(x => x.id === actionId);
-  if (!d) return;
-
-  buildPrintArea([{ device: d, imgSrc: canvas.toDataURL('image/png') }], true);
+  const c=document.querySelector('#qr-canvas-container canvas');
+  if(!c){toast('QR 이미지를 찾을 수 없습니다.');return;}
+  const d=devices.find(x=>x.id===actionId); if(!d) return;
+  buildPrintArea([{device:d,imgSrc:c.toDataURL('image/png')}],true);
   window.print();
 }
 
 function printAllQR() {
-  if (devices.length === 0) { toast('등록된 단말기가 없습니다.'); return; }
-
-  const tempWrap = document.createElement('div');
-  tempWrap.style.cssText = 'position:fixed;left:-9999px;top:-9999px;visibility:hidden;';
-  document.body.appendChild(tempWrap);
-
-  const items = [];
-
-  devices.forEach(d => {
-    const qrDiv = document.createElement('div');
-    tempWrap.appendChild(qrDiv);
-
-    new QRCode(qrDiv, {
-      text: buildQRText(d),
-      width: 160,
-      height: 160,
-      correctLevel: QRCode.CorrectLevel.L,
-    });
-
-    const canvas = qrDiv.querySelector('canvas');
-    items.push({ device: d, imgSrc: canvas ? canvas.toDataURL('image/png') : '' });
+  if(!devices.length){toast('등록된 단말기가 없습니다.');return;}
+  if(typeof QRCode==='undefined'){toast('QR 라이브러리가 로드되지 않았습니다.');return;}
+  const wrap=document.createElement('div');
+  wrap.style.cssText='position:fixed;left:-9999px;top:-9999px;visibility:hidden;';
+  document.body.appendChild(wrap);
+  const items=devices.map(d=>{
+    const div=document.createElement('div'); wrap.appendChild(div);
+    new QRCode(div,{text:buildQRText(d),width:160,height:160,correctLevel:QRCode.CorrectLevel.L});
+    const c=div.querySelector('canvas');
+    return {device:d,imgSrc:c?c.toDataURL('image/png'):''};
   });
-
-  document.body.removeChild(tempWrap);
-  buildPrintArea(items, false);
-  window.print();
+  document.body.removeChild(wrap);
+  buildPrintArea(items,false); window.print();
 }
 
-function buildPrintArea(items, isSingle) {
-  const dateStr = new Date().toLocaleDateString('ko-KR');
-  const area = document.getElementById('print-area');
-
-  const cards = items.map(({ device: d, imgSrc }) => `
+function buildPrintArea(items,isSingle) {
+  const area=document.getElementById('print-area');
+  const cards=items.map(({device:d,imgSrc})=>`
     <div class="qr-card">
       <img src="${imgSrc}" alt="QR">
       <div class="qc-name">${esc(d.name)}</div>
-      <div class="qc-sub">${esc(d.os)} ${esc(d.version)}</div>
-      <div class="qc-status ${d.status === '보유' ? 'st-avail' : 'st-rented'}">${d.status === '보유' ? '보유' : '대여 중'}</div>
-      ${d.renter ? `<div class="qc-renter">대여자: ${esc(d.renter)}</div>` : ''}
+      <div class="qc-sub">${esc(d.assetId)} | ${esc(d.os)} ${esc(d.version)}</div>
+      <div class="qc-status ${STATUS_PRINT[d.status]||'st-discard'}">${esc(d.status)}</div>
+      ${d.renter?`<div class="qc-renter">${esc(d.renter)}</div>`:''}
     </div>`).join('');
-
-  area.innerHTML = `
-    <div class="print-title">단말기 QR 코드 현황 — ${dateStr}</div>
-    <div class="print-grid${isSingle ? ' single' : ''}">${cards}</div>`;
-
-  window.addEventListener('afterprint', () => { area.innerHTML = ''; }, { once: true });
+  area.innerHTML=`<div class="print-title">단말기 QR 현황 — ${new Date().toLocaleDateString('ko-KR')}</div>
+    <div class="print-grid${isSingle?' single':''}">${cards}</div>`;
+  window.addEventListener('afterprint',()=>{area.innerHTML='';},{once:true});
 }
 
 // ── 유틸 ─────────────────────────────────────────────────
-function today() { return new Date().toISOString().slice(0, 10); }
+function today(){return new Date().toISOString().slice(0,10);}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
 
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+document.querySelectorAll('.modal-overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el) closeModal(el.id);});
 });
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(el => closeModal(el.id));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(el=>closeModal(el.id));
 });
 
 let toastTimer;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
 }
 
-// ── 초기화 ───────────────────────────────────────────────
 renderTable();
 </script>
 </body>
