@@ -732,21 +732,22 @@ function detectColumns(headerRow) {
   const map = {};
   headerRow.forEach((cell, i) => {
     const c = String(cell).trim();
-    if(/^자산번호|^자산|^asset.?id/i.test(c)           && !map.assetId)    map.assetId    = i;
-    if(/기기명|단말기명/i.test(c)                        && !map.name)       map.name       = i;
-    if(/모델번호|모델/i.test(c)                          && !map.model)      map.model      = i;
-    if(/버전|version/i.test(c)                          && !map.version)    map.version    = i;
+    if(/자산번호|^자산$|^asset.?id$/i.test(c)           && !map.assetId)    map.assetId    = i;
+    if(/기기명|기기\s*이름|단말기명/i.test(c)             && !map.name)       map.name       = i;
+    if(/모델번호|^모델$|^model$/i.test(c)                && !map.model)      map.model      = i;
+    if(/^버전$|^version$|os.*버전|버전.*os/i.test(c)     && !map.version)    map.version    = i;
     if(/시리얼|serial|s\/n/i.test(c)                    && !map.serial)     map.serial     = i;
     if(/해상도|resol/i.test(c)                          && !map.resolution) map.resolution = i;
-    if(/^ram$|메모리/i.test(c)                          && !map.ram)        map.ram        = i;
-    if(/칩셋|chip|cpu/i.test(c)                         && !map.chipset)    map.chipset    = i;
-    if(/대여자|사용자/i.test(c)                          && !map.renter)     map.renter     = i;
-    if(/날짜|대여일/i.test(c)                            && !map.rentDate)   map.rentDate   = i;
-    if(/위치|장소/i.test(c)                              && !map.location)   map.location   = i;
-    if(/비고|메모/i.test(c)                              && !map.notes)      map.notes      = i;
+    if(/^ram$|^메모리$|memory/i.test(c)                 && !map.ram)        map.ram        = i;
+    if(/칩셋|chipset|^ap$/i.test(c)                     && !map.chipset)    map.chipset    = i;
+    if(/대여자|사용자|renter/i.test(c)                   && !map.renter)     map.renter     = i;
+    if(/날짜|대여일|date/i.test(c)                       && !map.rentDate)   map.rentDate   = i;
+    if(/^위치$|장소|location/i.test(c)                   && !map.location)   map.location   = i;
+    if(/^비고$|^메모$|note/i.test(c)                     && !map.notes)      map.notes      = i;
   });
-  // 감지된 항목이 거의 없으면 위치 기반 기본값 사용
-  return Object.keys(map).length >= 4 ? map : {...POSITIONAL_MAP};
+  // 감지 못한 컬럼은 위치 기반 기본값으로 채움
+  Object.entries(POSITIONAL_MAP).forEach(([k,v]) => { if(map[k]===undefined) map[k]=v; });
+  return map;
 }
 
 function inferOS(name, model) {
@@ -822,7 +823,7 @@ function parseRows(rows) {
         notes,
       };
     })
-    .filter(d => d.name);  // 기기명 없는 행 제거
+    .filter(d => d.name || d.assetId);  // 기기명이나 자산번호 중 하나라도 있는 행만
 }
 
 function showImportPreview(rows) {
