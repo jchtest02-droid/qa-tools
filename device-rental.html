@@ -703,8 +703,12 @@ function handleExcelFile(input) {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
       if(rows.length < 2){toast('데이터가 없습니다.');return;}
-      importRows = rows;
-      showImportPreview(rows);
+      const parsed = parseRows(rows);
+      if(!parsed.length){toast('가져올 데이터가 없습니다.');return;}
+      devices = parsed;
+      nextId = Math.max(...devices.map(d=>d.id)) + 1;
+      save(); renderTable();
+      toast(`✅ ${devices.length}개 단말기를 가져왔습니다.`);
     } catch(err) { toast('파일 읽기 오류: ' + err.message); }
   };
   reader.readAsArrayBuffer(file);
